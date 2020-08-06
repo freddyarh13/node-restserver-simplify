@@ -6,9 +6,12 @@ const jwt = require('jsonwebtoken');
 const { OAuth2Client } = require('google-auth-library');
 const client = new OAuth2Client(process.env.CLIENT_ID);
 
+
+
 const Usuario = require('../models/usuario');
 
 const app = express();
+
 
 
 app.post('/login', (req, res) => {
@@ -18,24 +21,21 @@ app.post('/login', (req, res) => {
     Usuario.findOne({ email: body.email }, (err, usuarioDB) => {
 
         if (err) {
-
             return res.status(500).json({
                 ok: false,
                 err
             });
-
         }
 
         if (!usuarioDB) {
-
             return res.status(400).json({
                 ok: false,
                 err: {
                     message: '(Usuario) o contraseña incorrectos'
                 }
             });
-
         }
+
 
         if (!bcrypt.compareSync(body.password, usuarioDB.password)) {
             return res.status(400).json({
@@ -55,12 +55,14 @@ app.post('/login', (req, res) => {
             usuario: usuarioDB,
             token
         });
+
+
     });
 
 });
 
-//Configuraciones de Google
 
+// Configuraciones de Google
 async function verify(token) {
     const ticket = await client.verifyIdToken({
         idToken: token,
@@ -70,19 +72,15 @@ async function verify(token) {
     });
     const payload = ticket.getPayload();
 
-    // console.log(payload.name);
-    // console.log(payload.email);
-    // console.log(payload.picture);
-
     return {
         nombre: payload.name,
         email: payload.email,
         img: payload.picture,
         google: true
     }
+
 }
 
-// verify().catch(console.error);
 
 app.post('/google', async(req, res) => {
 
@@ -96,24 +94,23 @@ app.post('/google', async(req, res) => {
             });
         });
 
+
     Usuario.findOne({ email: googleUser.email }, (err, usuarioDB) => {
 
         if (err) {
-
             return res.status(500).json({
                 ok: false,
                 err
             });
-
         };
 
         if (usuarioDB) {
 
             if (usuarioDB.google === false) {
-                return res.status(500).json({
+                return res.status(400).json({
                     ok: false,
                     err: {
-                        message: 'Debe de usar su autenticacion normal'
+                        message: 'Debe de usar su autenticación normal'
                     }
                 });
             } else {
@@ -121,15 +118,17 @@ app.post('/google', async(req, res) => {
                     usuario: usuarioDB
                 }, process.env.SEED, { expiresIn: process.env.CADUCIDAD_TOKEN });
 
+
                 return res.json({
                     ok: true,
                     usuario: usuarioDB,
                     token,
                 });
-            }
-        } else {
-            //Si el usuario no existe en nuestra base de datos
 
+            }
+
+        } else {
+            // Si el usuario no existe en nuestra base de datos
             let usuario = new Usuario();
 
             usuario.nombre = googleUser.nombre;
@@ -139,8 +138,8 @@ app.post('/google', async(req, res) => {
             usuario.password = ':)';
 
             usuario.save((err, usuarioDB) => {
-                if (err) {
 
+                if (err) {
                     return res.status(500).json({
                         ok: false,
                         err
@@ -151,19 +150,22 @@ app.post('/google', async(req, res) => {
                     usuario: usuarioDB
                 }, process.env.SEED, { expiresIn: process.env.CADUCIDAD_TOKEN });
 
+
                 return res.json({
                     ok: true,
                     usuario: usuarioDB,
                     token,
                 });
 
-            });
-        }
-    })
 
-    // res.json({
-    //     usuario: googleUser
-    // });
+            });
+
+        }
+
+
+    });
+
+
 });
 
 
